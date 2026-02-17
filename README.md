@@ -231,10 +231,55 @@ Alerts are written to:
 
 ## Limitations
 
-- **Encrypted Traffic**: Cannot inspect TLS/SSL-encrypted traffic without SSL interception
+- **Encrypted Traffic (TLS/HTTPS)**: Cannot inspect encrypted traffic without SSL interception
 - **Performance**: Python-based; may not handle 10Gbps+ traffic without optimization
 - **Passive Only**: Cannot block traffic in default configuration
 - **Root Required**: Needs root privileges for packet capture
+
+## Testing Results
+
+### Verified Detection
+
+The DLP successfully detects sensitive data in **unencrypted HTTP traffic**:
+
+```
+Findings: 5
+  - [critical] ssn: 123-45-6789
+  - [high] api_key: sk_live_abc123xyz789
+  - [medium] jwt: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+  - [high] bearer_token: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+  - [high] authorization: Authorization: Bearer ...
+
+Policies triggered: 4
+  - critical_data_exfiltration
+  - api_key_leak
+  - auth_token_exposure
+  - credential_leak
+```
+
+### HTTPS/TLS Limitation
+
+When testing with Slack (which uses HTTPS), the DLP captured metadata:
+- Source/destination IPs and ports
+- Protocol: TCP
+- Packet sizes
+
+However, the **message content was encrypted** and could not be inspected. This is a fundamental limitation of passive network monitoring.
+
+### Protocols That Work
+
+The DLP can inspect plaintext traffic:
+- HTTP (port 80)
+- SMTP (ports 25, 465, 587)
+- FTP (ports 20, 21)
+- DNS (port 53)
+- Unencrypted connections
+
+### Workarounds for Encrypted Traffic
+
+1. **SSL Interception**: Deploy a MITM proxy to decrypt traffic before inspection
+2. **Host-based DLP**: Install DLP agent on the host to intercept before encryption
+3. **DNS Inspection**: Monitor DNS queries (unencrypted) for data exfiltration
 
 ## Future Enhancements
 
