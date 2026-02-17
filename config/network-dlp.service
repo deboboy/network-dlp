@@ -1,0 +1,17 @@
+[Unit]
+Description=Network DLP Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/network-dlp
+ExecStart=/usr/bin/python3 /root/network-dlp/dlp_service.py -i eth0
+Restart=always
+RestartSec=10
+
+StandardOutput=append:/root/network-dlp/logs/service.log
+StandardError=append:/root/network-dlp/logs/service.log
+
+[Install]
+WantedBy=multi-user.target
