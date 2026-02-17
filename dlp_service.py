@@ -17,6 +17,7 @@ from packet_capture import PacketCapture
 from protocol_parser import ProtocolParser
 from content_inspector import ContentInspector
 from policy_engine import PolicyEngine
+from dns_monitor import DNSMonitor
 
 
 class DLPService:
@@ -32,6 +33,7 @@ class DLPService:
         self.parser = ProtocolParser()
         self.inspector = ContentInspector()
         self.engine = PolicyEngine(config_dir=config_dir)
+        self.dns_monitor = DNSMonitor()
 
         self.running = False
         self.start_time = None
@@ -58,6 +60,15 @@ class DLPService:
 
             parsed = self.parser.parse(packet_info)
             findings = self.inspector.inspect(parsed)
+
+            dns_findings = self.dns_monitor.analyze(parsed)
+            if dns_findings:
+                findings.extend(dns_findings)
+                self.engine.evaluate(parsed, dns_findings)
+                for alert in self.engine.alerts[-len(dns_findings):]:
+                    self.alert_queue.append(alert)
+                    self.engine.process_alert(alert)
+                    self._log_alert(alert)
 
             if findings:
                 self.engine.evaluate(parsed, findings)
@@ -131,6 +142,12 @@ Inspector Stats:
 
 Engine Stats:
 {json.dumps(self.engine.get_stats(), indent=2)}
+
+DNS Monitor Stats:
+{json.dumps(self.dns_monitor.get_stats(), indent=2)}
+
+Top TLDs:
+{self.dns_monitor.get_top_tlds(10)}
 {'='*60}
 """)
 
