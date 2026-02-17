@@ -9,107 +9,19 @@ Network DLP operates at OSI layers 1-7 to monitor traffic flowing through a netw
 ### Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Network DLP Service                      │
-├─────────────────────────────────────────────────────────────┤
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐  │
-│  │   Packet     │───▶│   Protocol   │───▶│  Content     │  │
-│  │  Capture     │    │   Parser     │    │  Inspector   │  │
-│  │  (L1-L3)     │    │  (L4-L7)     │    │  (Patterns)  │  │
-│  └──────────────┘    └──────────────┘    └──────────────┘  │
-│         │                                        │          │
-│         ▼                                        ▼          │
-│  ┌──────────────┐                        ┌──────────────┐  │
-│  │   libpcap    │                        │   Policy     │  │
-│  │  / Scapy    │                        │   Engine     │  │
-│  └──────────────┘                        └──────────────┘  │
-│                                                │            │
-│                                                ▼            │
-│                                       ┌──────────────┐      │
-│                                       │   Alerting   │      │
-│                                       │   & Logging  │      │
-│                                       └──────────────┘      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Components
+### What's Built
 
-| Component | File | Description |
-|-----------|------|-------------|
-| Packet Capture | `packet_capture.py` | Captures raw packets from network interface using libpcap |
-| Protocol Parser | `protocol_parser.py` | Identifies application protocols (HTTP, DNS, SMTP, etc.) |
-| Content Inspector | `content_inspector.py` | Pattern matching for sensitive data detection |
-| Policy Engine | `policy_engine.py` | Evaluates findings against policies, triggers alerts |
-| DNS Monitor | `dns_monitor.py` | Network-level DNS traffic analysis for tunneling/exfiltration |
-| DNS Log Monitor | `dns_log_monitor.py` | Monitors dnsmasq logs for DNS query analysis |
-| HTTP Interceptor | `http_interceptor.py` | Intercepts HTTP requests from AI agents (pre-encryption) |
-| Service | `dlp_service.py` | Main daemon that ties all components together |
-
-## HTTP Interceptor for AI Agents
-
-The HTTP interceptor is designed to be integrated directly into AI agent code. It intercepts outbound HTTP requests **before** they are encrypted, providing visibility into API calls, credentials, and sensitive data.
-
-### Features
-- Intercepts all HTTP requests made via `requests`, `httpx`, and `urllib`
-- Scans URLs, headers, and request bodies for sensitive data
-- Logs all requests to JSON file
-- Triggers immediate alerts on detection
-- Works without SSL/TLS interception
-
-### Integration
-
-Add to your AI agent code:
-```python
-from http_interceptor import HTTPInterceptor, alert_handler
-
-interceptor = HTTPInterceptor(
-    log_file='logs/agent_requests.jsonl',
-    alert_callback=alert_handler
-)
-interceptor.install()  # hooks requests, httpx, urllib
-```
-
-### Test Results
-
-```
-[AGENT DLP ALERT] 2 sensitive item(s) found
-Method: post
-URL: https://httpbin.org/post
-Findings:
-  - [HIGH] api_key: sk_live_abc123defghijklmnop
-  - [HIGH] password: secret123
-```
-
-## Detection Capabilities
-
-The content inspector detects the following sensitive data types:
-
-### Credentials & Secrets
-- Credit card numbers (Visa, MasterCard, Amex, Discover)
-- US Social Security Numbers (SSN)
-- API keys (generic)
-- AWS Access Key IDs
-- AWS Secret Access Keys
-- GitHub tokens
-- Slack tokens
-- Private keys (RSA, EC, DSA, OpenSSH)
-
-### Authentication
-- JWT tokens
-- Bearer tokens
-- Basic authentication headers
-- Authorization headers
-- Passwords in URLs
-
-### Security Threats
-- SQL injection attempts
-- XSS attempts
-- Sensitive file path references
-
-### PII
-- Email addresses
-- Phone numbers
-- Private IP addresses
+| Layer | Component | Status |
+|-------|-----------|--------|
+| L1-L3 | Packet capture | ✅ |
+| L4-L7 | Protocol parsing | ✅ |
+| App | Content inspection (20+ patterns) | ✅ |
+| Policy | Alerting engine | ✅ |
+| DNS | Network + dnsmasq logging | ✅ |
+| Agent | HTTP interceptor (pre-encryption) | ✅ |
 
 ## Installation
 
